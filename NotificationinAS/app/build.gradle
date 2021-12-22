@@ -6,7 +6,7 @@ android {
     compileSdk 30
 
     defaultConfig {
-        applicationId "com.superprofan.simtest"
+        applicationId "com.superprofan.notificationinas"
         minSdk 21
         targetSdk 30
         versionCode 1
@@ -26,7 +26,6 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 }
-
 
 dependencies {
 

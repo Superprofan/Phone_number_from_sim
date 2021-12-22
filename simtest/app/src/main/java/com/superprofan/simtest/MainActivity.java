@@ -3,11 +3,15 @@ package com.superprofan.simtest;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -19,6 +23,7 @@ import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,10 +31,14 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
     public static final int PERMISSIONS_REQUEST_READ_CONTACTS = 1;
+    private final String CHANNEL_ID = "personal notifications";
+    private final int NOTIFICATION_ID = 001;
+    public String notificationText;
+    public String notificationTitle;
     //String TAG = "PhoneActivityTAG";
-    Activity activity = MainActivity.this;
-    String wantPermission = Manifest.permission.READ_PHONE_STATE;
-    private static final int PERMISSION_REQUEST_CODE = 1;
+    //Activity activity = MainActivity.this;
+   // String wantPermission = Manifest.permission.READ_PHONE_STATE;
+    //private static final int PERMISSION_REQUEST_CODE = 1;
     private static final String TAG = "myLogs";
     TextView tvPhoneNumber;
 
@@ -40,26 +49,9 @@ public class MainActivity extends AppCompatActivity {
 
 
         Log.i(TAG, "NEW START 11111111: ");
-
-
-
         tvPhoneNumber = findViewById(R.id.tv_phonenumber);
-/*
-        Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                null,null,null, null);
-        while (phones.moveToNext())
-        {
-            String name=phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
-            String phoneNumber = phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
-        }
-        phones.close();
-*/
         requestContactPermission();
-
-
         Log.i(TAG, "STARRRRRRRT222222222222: ");
-
-
     }
 
 
@@ -73,16 +65,14 @@ public class MainActivity extends AppCompatActivity {
             String m_simPhonename;
             String m_simphoneNo;
 
-
-
+            //читаем контакты в симке, считаем количество
             Uri simUri = Uri.parse("content://icc/adn");
-
             Cursor cursorSim = getContentResolver().query(simUri,null,null,null,
                     ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC");
-            //Log.i(TAG, "STARRRRRRRT33333333333333333: ");
+
             Log.i("PhoneContact", "total: "+cursorSim.getCount());
 
-
+            //читаем контакты, имена и номера, чистим от мусора
             while (cursorSim.moveToNext())
             {
                 m_simPhonename =cursorSim.getString(cursorSim.getColumnIndex("name"));
@@ -91,15 +81,15 @@ public class MainActivity extends AppCompatActivity {
                 m_simphoneNo.replaceAll("&", "");
                 m_simPhonename=m_simPhonename.replace("|","");
 
-               // Log.i("PhoneContact", "name: " + m_simPhonename + " phone: " + m_simphoneNo);
-               // Log.i("CHECK","something happened here");
-
-                //if m_simPhonename =="myNumber" - > Log.i
+            //если найден номер с нужным названием, выводим в лог
                 if (cursorSim.getString(cursorSim.getColumnIndex("name")).equals("MyNumber")) {
                     Log.i("PhoneContact", "name: " + m_simPhonename + " phone: " + m_simphoneNo);
                     Log.i("CHECK","something happened here");
 
+            //выводим номер и название в текствью
                     tvPhoneNumber.setText(m_simPhonename+" "+m_simphoneNo);
+            //номер и название для вывода в уведомление
+                    notificationText = m_simPhonename+" "+m_simphoneNo;
                     break;
                 }
             }
@@ -111,9 +101,34 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+    //создаем уведомление
+    public void displayNotification (View view){
+        createNotificationChannel();
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID);
+        builder.setSmallIcon(R.drawable.ic_sms_notification);
+        builder.setContentTitle("твой номер");
+        builder.setContentText(notificationText);
+        builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
+        notificationManagerCompat.notify(NOTIFICATION_ID, builder.build());
+    }
+    //создаем канал уведомления (в новых версиях андроида иначе не попрет)
+    private void createNotificationChannel(){
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O){
+            CharSequence name = "personal notifications";
+            String description = "Include all the personal notifications";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+
+            NotificationChannel notificationChannel= new NotificationChannel(CHANNEL_ID, name, importance);
+            notificationChannel.setDescription(description);
+            NotificationManager notificationManager= (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            notificationManager.createNotificationChannel(notificationChannel);
+        }
+    }
 
 
-
+//запрашиваем разрешение на чтение контактов
 
     public void requestContactPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
